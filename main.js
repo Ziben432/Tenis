@@ -242,6 +242,8 @@ let inspectedCardOriginalStyles = {};
 let inspectedCardWasOnBoard = false;
 
 function inspectCard(cardEl) {
+  if (cardEl.classList.contains('card-inspected')) return;
+  
   const overlay = document.getElementById('card-inspector-overlay');
   
   inspectedCardOriginalParent = cardEl.parentNode;

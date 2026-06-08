@@ -335,13 +335,13 @@ body {
   transition: transform 0.2s, z-index 0.2s, margin-left 0.3s;
 }
 
-.player-card-item:first-child {
+.menu-area .card:first-child {
   margin-left: 0;
 }
 
-.player-card-item:hover {
-  transform: translateY(-40px) scale(1.15);
-  z-index: 200;
+.menu-area .card:hover {
+  transform: translateY(-40px) scale(1.15) !important;
+  z-index: 9999 !important;
 }
 
 .card:hover {
