@@ -19,9 +19,10 @@ let readyClients = new Set();
 
 io.on('connection', (socket) => {
   if (connectedClients.length >= 2) {
-    socket.emit('error', { msg: 'Server full. Max 2 players.' });
-    socket.disconnect();
-    return;
+    // Zamiast blokować, wyrzucamy najstarsze połączenie (tzw. sesję-widmo po odświeżeniu)
+    const oldestClient = connectedClients.shift();
+    oldestClient.emit('error', { msg: 'You were disconnected because a new player joined (or you refreshed).' });
+    oldestClient.disconnect();
   }
 
   const role = connectedClients.length === 0 ? 'P1' : 'P2';
