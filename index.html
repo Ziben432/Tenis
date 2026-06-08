@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PvZ Tennis Heroes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Outfit:wght@800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <div class="card-inspector-overlay" id="card-inspector-overlay"></div>
+    
+    <!-- Visual Effects -->
+    <div id="flash-overlay" class="flash-overlay"></div>
+    <div class="impact-effect" id="impact-effect"></div>
+    
+    <!-- Waiting Overlay -->
+    <div id="waiting-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--gold); font-family: 'Outfit', sans-serif;">
+      <h1 style="font-size: 3rem; margin-bottom: 20px;">MULTIPLAYER MODE</h1>
+      <h2 id="waiting-status">Connecting to server...</h2>
+    </div>
+
+    <!-- TOP BAR (BOT HERO) -->
+    <div class="hero-bar bot-bar" id="bot-hero">
+      <div class="hero-profile">
+        <div class="hero-name">BOT HERO</div>
+        <div class="hero-avatar">🤖</div>
+      </div>
+      <div class="hero-stats">
+        <div class="score-display">SCORE: <span id="score-bot">0</span> / 11</div>
+        <div class="mana-display bot-mana" id="bot-mana-ui">🎾 MANA: <span id="bot-mana-current">1</span>/<span id="bot-mana-max">1</span></div>
+      </div>
+    </div>
+
+    <!-- TURN INDICATOR -->
+    <div class="turn-indicator" id="phase-indicator">TURN 1 - BOT PLAY</div>
+
+    <!-- MATCH LOG -->
+    <div class="match-log" id="match-log">MATCH START!</div>
+
+    <!-- COURT / LANES BOARD -->
+    <div class="court-area">
+      <div class="court">
+        <div class="lanes-board">
+          <div class="lane" data-lane="1">
+            <div class="slot bot-slot"></div>
+            <div class="slot player-slot"></div>
+          </div>
+          <div class="lane" data-lane="2">
+            <div class="slot bot-slot"></div>
+            <div class="slot player-slot"></div>
+          </div>
+          <div class="lane" data-lane="3">
+            <div class="slot bot-slot"></div>
+            <div class="slot player-slot"></div>
+          </div>
+          <div class="lane" data-lane="4">
+            <div class="slot bot-slot"></div>
+            <div class="slot player-slot"></div>
+          </div>
+          <div class="lane golden-lane" data-lane="5">
+            <div class="slot bot-slot"></div>
+            <div class="slot player-slot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM BAR (PLAYER HERO) -->
+    <div class="hero-bar player-bar" id="player-hero">
+      <div class="hero-stats">
+        <div class="score-display">SCORE: <span id="score-you">0</span> / 11</div>
+        <div class="mana-display player-mana" id="player-mana-ui">🎾 MANA: <span id="player-mana-current">1</span>/<span id="player-mana-max">1</span></div>
+      </div>
+      <div class="hero-profile">
+        <div class="hero-avatar">👨</div>
+        <div class="hero-name">PLAYER</div>
+      </div>
+    </div>
+
+    <button id="end-turn-btn" class="end-turn-btn">FIGHT PHASE</button>
+
+    <!-- Player Menu / Hand Area -->
+    <div class="menu-area" id="menu-area">
+      <!-- Player cards will be injected here -->
+    </div>
+
+    <!-- Used Cards Section -->
+    <div class="used-cards-area" id="used-cards-area">
+      <div class="menu-header">GRAVEYARD</div>
+    </div>
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Skrypty gry -->
+    <script defer src="main.js"></script>
+</body>
+</html>
