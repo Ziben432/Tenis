@@ -17,6 +17,10 @@ app.use(express.static(__dirname));
 let connectedClients = [];
 let readyClients = new Set();
 
+let startingPlayer = 'P1';
+let activePlayer = 'P1';
+let endedTurnPlayers = new Set();
+
 io.on('connection', (socket) => {
   if (connectedClients.length >= 2) {
     // Zamiast blokować, wyrzucamy najstarsze połączenie (tzw. sesję-widmo po odświeżeniu)
@@ -35,7 +39,10 @@ io.on('connection', (socket) => {
 
   if (connectedClients.length === 2) {
     console.log("Both players connected. Starting game!");
-    io.emit('gameStart');
+    startingPlayer = Math.random() < 0.5 ? 'P1' : 'P2';
+    activePlayer = startingPlayer;
+    endedTurnPlayers.clear();
+    io.emit('gameStart', { startingPlayer: startingPlayer });
   }
 
   socket.on('playCard', (data) => {
@@ -43,14 +50,24 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('playCard', data);
   });
 
-  socket.on('readyForCombat', () => {
-    readyClients.add(socket.id);
-    console.log(`[${socket.role}] ready for combat.`);
+  socket.on('endTurn', () => {
+    endedTurnPlayers.add(socket.role);
+    console.log(`[${socket.role}] ended turn. Total ended: ${endedTurnPlayers.size}`);
     
-    if (readyClients.size === 2) {
-      console.log("Both players ready! Initiating combat.");
-      io.emit('startCombat');
-      readyClients.clear();
+    if (endedTurnPlayers.size === 2) {
+      console.log("Both players ended turn! Initiating combat.");
+      
+      // Determine who starts next round
+      const nextStartingPlayer = startingPlayer === 'P1' ? 'P2' : 'P1';
+      startingPlayer = nextStartingPlayer;
+      activePlayer = nextStartingPlayer;
+      
+      io.emit('startCombat', { nextStartingPlayer: nextStartingPlayer });
+      endedTurnPlayers.clear();
+    } else {
+      // Switch active player
+      activePlayer = socket.role === 'P1' ? 'P2' : 'P1';
+      io.emit('turnSwitch', { activePlayer: activePlayer });
     }
   });
 

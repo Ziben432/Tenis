@@ -139,7 +139,10 @@ let isDragging = false;
 let draggedCard = null;
 let offsetX = 0;
 let offsetY = 0;
-let currentPhase = 'BOT_PLAY';
+let currentPhase = 'WAITING';
+let myRole = '';
+let isMyTurn = false;
+let nextStartingPlayer = null;
 
 function updateScoreUI() {
   document.getElementById('score-bot').textContent = botPoints;
@@ -368,30 +371,45 @@ function initNetwork() {
   
   socket.on('role', (data) => {
     myRole = data.role;
-    logMessage(`Connected as ${myRole}`);
-    
-    const pName = document.querySelector('.player-bar .hero-name');
-    const bName = document.querySelector('.bot-bar .hero-name');
-    if (myRole === 'P1') {
-      pName.textContent = 'PLAYER 1';
+    if (data.role === 'P1') {
+      const pName = document.querySelector('.player-area .player-name');
+      const bName = document.querySelector('.bot-area .player-name');
+      pName.textContent = 'PLAYER 1 (YOU)';
       bName.textContent = 'PLAYER 2 (OPPONENT)';
     } else {
-      pName.textContent = 'PLAYER 2';
+      const pName = document.querySelector('.player-area .player-name');
+      const bName = document.querySelector('.bot-area .player-name');
+      pName.textContent = 'PLAYER 2 (YOU)';
       bName.textContent = 'PLAYER 1 (OPPONENT)';
     }
   });
 
-  socket.on('gameStart', () => {
+  socket.on('gameStart', (data) => {
     document.getElementById('waiting-overlay').style.display = 'none';
-    startGame();
+    startGame(data.startingPlayer);
+  });
+
+  socket.on('turnSwitch', (data) => {
+    isMyTurn = (myRole === data.activePlayer);
+    if (isMyTurn) {
+      startPlayerTurn();
+    } else {
+      currentPhase = 'OPPONENT_TURN';
+      phaseIndicator.textContent = "OPPONENT IS PLAYING...";
+      endTurnBtn.style.display = 'none';
+      logMessage("WAIT FOR YOUR TURN!");
+      botCurrentMana = botMaxMana; // Refresh opponent mana locally
+      updateManaUI();
+    }
   });
 
   socket.on('playCard', (data) => {
     handleOpponentPlay(data.play);
   });
 
-  socket.on('startCombat', () => {
+  socket.on('startCombat', (data) => {
     currentPhase = 'COMBAT';
+    nextStartingPlayer = data.nextStartingPlayer;
     phaseIndicator.textContent = "COMBAT PHASE!";
     resolveCombat();
   });
@@ -405,7 +423,7 @@ function initNetwork() {
   });
 }
 
-function startGame() {
+function startGame(startingPlayer) {
   currentTurn = 1;
   playerMaxMana = currentTurn;
   playerCurrentMana = playerMaxMana;
@@ -419,14 +437,32 @@ function startGame() {
   document.querySelectorAll('.used-cards-area .card').forEach(c => c.remove());
   document.querySelectorAll('#menu-area .card').forEach(c => c.remove());
   
-  // Initial draw: 3 cards (plus 1 in startPlayerTurn makes 4)
-  for(let i=0; i<3; i++) {
+  // Initial draw: 4 cards
+  for(let i=0; i<4; i++) {
     const cardData = drawRandomCard();
     const newCard = createCard(cardData, 'PLAYER');
     menuArea.appendChild(newCard);
   }
   
-  startPlayerTurn();
+  isMyTurn = (myRole === startingPlayer);
+  showCoinToss(isMyTurn);
+}
+
+function showCoinToss(myTurn) {
+  currentPhase = 'COIN_TOSS';
+  phaseIndicator.textContent = "COIN TOSS...";
+  endTurnBtn.style.display = 'none';
+  
+  setTimeout(() => {
+    if (myTurn) {
+      phaseIndicator.textContent = "YOU START!";
+      setTimeout(() => startPlayerTurn(), 1500);
+    } else {
+      phaseIndicator.textContent = "OPPONENT STARTS!";
+      currentPhase = 'OPPONENT_TURN';
+      logMessage("WAIT FOR YOUR TURN!");
+    }
+  }, 2000);
 }
 
 function handleOpponentPlay(play) {
@@ -468,11 +504,15 @@ function handleOpponentPlay(play) {
 
 function startPlayerTurn() {
   currentPhase = 'PLAYER_PLAY';
-  phaseIndicator.textContent = `TURN ${currentTurn} - PREPARE FOR COMBAT`;
-  endTurnBtn.style.display = 'block';
-  logMessage("PLAY CARDS & READY UP!");
   
-  // Dobieramy dokładnie 1 kartę co turę bez względu na ilość kart w ręce
+  playerCurrentMana = playerMaxMana;
+  updateManaUI();
+  
+  phaseIndicator.textContent = `TURN ${currentTurn} - YOUR TURN!`;
+  endTurnBtn.style.display = 'block';
+  logMessage("YOUR TURN! PLAY CARDS.");
+  
+  // Dobieramy dokładnie 1 kartę
   const cardData = drawRandomCard();
   const newCard = createCard(cardData, 'PLAYER');
   menuArea.appendChild(newCard);
@@ -491,7 +531,7 @@ let dragStartY = 0;
 let dragThresholdMet = false;
 
 document.addEventListener('mousedown', (e) => {
-  if (e.button !== 0 || currentPhase !== 'PLAYER_PLAY') return;
+  if (e.button !== 0 || currentPhase !== 'PLAYER_PLAY' || !isMyTurn) return;
   
   const cardEl = e.target.closest('.card');
   if (!cardEl || cardEl.dataset.owner !== 'PLAYER' || cardEl.classList.contains('on-board') || cardEl.closest('#used-cards-area')) return;
@@ -756,9 +796,10 @@ function showTargetSelectionOverlay(slot, spellCard, cost, isAspirin, isGrypa, l
 
 // === COMBAT PHASE ===
 endTurnBtn.addEventListener('click', () => {
+  if (!isMyTurn) return;
   endTurnBtn.style.display = 'none';
   phaseIndicator.textContent = "WAITING FOR OPPONENT...";
-  socket.emit('readyForCombat');
+  socket.emit('endTurn');
 });
 
 async function resolveCombat() {
@@ -852,15 +893,21 @@ async function resolveCombat() {
     phaseIndicator.textContent = "MATCH OVER!";
     showEndGameOverlay(playerPoints >= 11 ? "YOU WIN THE MATCH!" : "OPPONENT WINS!");
   } else {
-    phaseIndicator.textContent = "NEXT TURN...";
+    phaseIndicator.textContent = "NEXT ROUND...";
     setTimeout(() => {
       currentTurn++;
-      playerMaxMana = Math.min(10, currentTurn);
-      playerCurrentMana = playerMaxMana;
-      botMaxMana = Math.min(10, currentTurn);
-      botCurrentMana = botMaxMana;
-      updateManaUI();
-      startPlayerTurn();
+      playerMaxMana = Math.min(currentTurn, 10);
+      botMaxMana = Math.min(currentTurn, 10);
+      
+      isMyTurn = (myRole === nextStartingPlayer);
+      if (isMyTurn) {
+        startPlayerTurn();
+      } else {
+        currentPhase = 'OPPONENT_TURN';
+        phaseIndicator.textContent = "OPPONENT IS PLAYING...";
+        endTurnBtn.style.display = 'none';
+        logMessage("WAIT FOR YOUR TURN!");
+      }
     }, 1500);
   }
 }
