@@ -806,7 +806,7 @@ async function resolveCombat() {
   }
 }
 
-function applyDamageToCard(cardEl, dmg) {
+function applyDamageToCard(cardEl, dmg, sourceType = 'COMBAT') {
   let hp = parseInt(cardEl.dataset.health);
   hp -= dmg;
   cardEl.dataset.health = hp;
@@ -814,7 +814,7 @@ function applyDamageToCard(cardEl, dmg) {
   
   // KIMMER COPPEJANS PASSIVE ABILITY
   // Zdolność odpala się na każdy DMG w belga (niezależnie czy przeżył czy zginął)
-  if (cardEl.dataset.nation === 'BELGIUM') {
+  if (sourceType === 'COMBAT' && cardEl.dataset.nation === 'BELGIUM') {
     const kimmers = document.querySelectorAll('.card.on-board[data-type="KIMMER_COPPEJANS"]');
     if (kimmers.length > 0) {
       for (let kimmer of kimmers) {
@@ -919,7 +919,7 @@ function applyGrypa(cardEl) {
   try { showImpact(cardEl); } catch(e){}
   
   if (hp === 0) {
-    applyDamageToCard(cardEl, 0); // Triggers death animation and graveyard logic
+    applyDamageToCard(cardEl, 0, 'EFFECT'); // Triggers death animation and graveyard logic without triggering Kimmer
   } else {
     if (!cardEl.querySelector('.grypa-status')) {
       const statusIcon = document.createElement('div');
