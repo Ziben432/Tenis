@@ -18,6 +18,19 @@ const CARD_DB = {
     ability: '',
     lore: 'Zwykła karta chińskiego zawodnika.'
   },
+  COLEMAN_WONG: {
+    type: 'COLEMAN_WONG',
+    name: 'Coleman Wong',
+    class: 'BASELINER',
+    nation: 'HONG_KONG',
+    flag: '🇭🇰',
+    cost: 1,
+    attack: 2,
+    health: 1,
+    image: 'coleman.png',
+    ability: '',
+    lore: 'Agresywny zawodnik mogący korzystać również ze złotego toru.'
+  },
   DALIBOR_SVRCINA: {
     type: 'DALIBOR_SVRCINA',
     name: 'Dalibor Svrčina',
@@ -538,6 +551,7 @@ document.addEventListener('mousemove', (e) => {
   const isGrypa = draggedCard.dataset.type === 'GRYPA';
   const isSpell = isAspirin || isGrypa;
   const isDebel = draggedCard.dataset.type === 'SHO_SHIMABUKURO' || draggedCard.dataset.type === 'DALIBOR_SVRCINA';
+  const isColeman = draggedCard.dataset.type === 'COLEMAN_WONG';
   
   document.querySelectorAll('.player-slot, .bot-slot').forEach(slot => {
     slot.classList.remove('drag-over');
@@ -559,6 +573,9 @@ document.addEventListener('mousemove', (e) => {
           slot.children[0].classList.add('drag-over-spell');
         }
       } else {
+        if (slot.parentNode.dataset.lane === "5" && !isDebel && !isSpell && !isColeman) {
+          return; // Nie podświetlaj
+        }
         if (isDebel) {
           if (slot.children.length < 2) slot.classList.add('drag-over');
         } else {
@@ -592,6 +609,7 @@ document.addEventListener('mouseup', () => {
   const isGrypa = draggedCard.dataset.type === 'GRYPA';
   const isSpell = isAspirin || isGrypa;
   const isDebel = draggedCard.dataset.type === 'SHO_SHIMABUKURO' || draggedCard.dataset.type === 'DALIBOR_SVRCINA';
+  const isColeman = draggedCard.dataset.type === 'COLEMAN_WONG';
   
   document.querySelectorAll('.player-slot, .bot-slot').forEach(slot => {
     slot.classList.remove('drag-over');
@@ -606,7 +624,7 @@ document.addEventListener('mouseup', () => {
       cardCenterX > rect.left && cardCenterX < rect.right &&
       cardCenterY > rect.top && cardCenterY < rect.bottom
     ) {
-      if (slot.parentNode.dataset.lane === "5" && !isDebel && !isSpell) {
+      if (slot.parentNode.dataset.lane === "5" && !isDebel && !isSpell && !isColeman) {
         logMessage("GOLDEN COURT - ONLY DOUBLE CARDS ALLOWED!");
         return; // Zablokuj kładzenie zwykłych kart (ale pozwól na czary i deble)
       }
