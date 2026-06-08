@@ -376,14 +376,12 @@ function startGame() {
   document.querySelectorAll('.used-cards-area .card').forEach(c => c.remove());
   document.querySelectorAll('#menu-area .card').forEach(c => c.remove());
   
-  // Initial draw: 2 cards
-  for(let i=0; i<2; i++) {
-    const cardData = drawRandomCard();
-    const newCard = createCard(cardData, 'PLAYER');
-    menuArea.appendChild(newCard);
-  }
+  // Initial draw: exactly 1 card
+  const cardData = drawRandomCard();
+  const newCard = createCard(cardData, 'PLAYER');
+  menuArea.appendChild(newCard);
   
-  startPlayerTurn(); // This will draw the 3rd card (turn draw)
+  startPlayerTurn();
 }
 
 function handleOpponentPlay(play) {
@@ -395,7 +393,7 @@ function handleOpponentPlay(play) {
   
   if (play.isSpell) {
     if (play.cardData.type === 'ASPIRYNA') {
-      const targetCard = slot.children[0];
+      const targetCard = slot.children[play.targetIndex || 0];
       if (targetCard) {
         let curHp = parseInt(targetCard.dataset.health);
         targetCard.dataset.health = curHp * 2;
@@ -404,7 +402,7 @@ function handleOpponentPlay(play) {
       }
     } else if (play.cardData.type === 'GRYPA') {
       const pSlot = document.querySelector(`.lane[data-lane="${lane}"] .player-slot`);
-      const targetCard = pSlot.children[0];
+      const targetCard = pSlot.children[play.targetIndex || 0];
       if (targetCard) applyGrypa(targetCard);
     }
   } else {
@@ -425,11 +423,10 @@ function startPlayerTurn() {
   endTurnBtn.style.display = 'block';
   logMessage("PLAY CARDS & READY UP!");
   
-  if (menuArea.querySelectorAll('.card').length < 5) {
-    const cardData = drawRandomCard();
-    const newCard = createCard(cardData, 'PLAYER');
-    menuArea.appendChild(newCard);
-  }
+  // Dobieramy dokładnie 1 kartę co turę bez względu na ilość kart w ręce
+  const cardData = drawRandomCard();
+  const newCard = createCard(cardData, 'PLAYER');
+  menuArea.appendChild(newCard);
   
   updateHandLayout();
 }
@@ -573,9 +570,9 @@ document.addEventListener('mouseup', () => {
       cardCenterX > rect.left && cardCenterX < rect.right &&
       cardCenterY > rect.top && cardCenterY < rect.bottom
     ) {
-      if (slot.parentNode.dataset.lane === "5" && !isDebel) {
-        logMessage("GOLDEN COURT - COMING SOON!");
-        return; // Zablokuj
+      if (slot.parentNode.dataset.lane === "5" && !isDebel && !isSpell) {
+        logMessage("GOLDEN COURT - ONLY DOUBLE CARDS ALLOWED!");
+        return; // Zablokuj kładzenie zwykłych kart (ale pozwól na czary i deble)
       }
       
       const cost = parseInt(draggedCard.dataset.cost);
@@ -586,34 +583,17 @@ document.addEventListener('mouseup', () => {
       
       if (isSpell) {
         if (slot.children.length > 0) {
-          const targetCard = slot.children[0];
-          playerCurrentMana -= cost;
-          updateManaUI();
-          
-          if (isAspirin) {
-             let curHp = parseInt(targetCard.dataset.health);
-             targetCard.dataset.health = curHp * 2;
-             targetCard.querySelector('.hp-val').textContent = curHp * 2;
-             logMessage("ASPIRYNA USED!");
-             try { showImpact(targetCard); } catch(e){}
-          } else if (isGrypa) {
-             applyGrypa(targetCard);
+          if (slot.children.length === 2 && slot.parentNode.dataset.lane === "5") {
+             // DEBEL NA ZŁOTYM TORZE - Otwórz modal z wyborem celu
+             showTargetSelectionOverlay(slot, draggedCard, cost, isAspirin, isGrypa, parseInt(slot.parentNode.dataset.lane));
+             snapped = true;
+          } else {
+             // Zwykły tor lub 1 karta na złotym - od razu nałóż efekt
+             applySpell(slot.children[0], draggedCard, cost, isAspirin, isGrypa, parseInt(slot.parentNode.dataset.lane), 0);
+             snapped = true;
           }
-          
-          draggedCard.classList.remove('on-board');
-          draggedCard.style.transform = 'scale(0.4)';
-          draggedCard.style.position = 'absolute';
-          draggedCard.style.left = '';
-          draggedCard.style.top = '';
-          draggedCard.style.margin = '';
-          document.getElementById('used-cards-area').appendChild(draggedCard);
-          
-          socket.emit('playCard', {
-            play: { cardData: JSON.parse(draggedCard.dataset.raw), lane: parseInt(slot.parentNode.dataset.lane), isSpell: true }
-          });
-          
-          snapped = true;
         }
+
       } else {
         const canPlace = isDebel ? slot.children.length < 2 : slot.children.length === 0;
         if (canPlace) {
@@ -647,12 +627,73 @@ document.addEventListener('mouseup', () => {
     menuArea.appendChild(draggedCard);
   }
   
-  // Zaktualizuj wachlarz kart niezależnie od tego czy puściliśmy czy zrzuciliśmy
+// Zaktualizuj wachlarz kart niezależnie od tego czy puściliśmy czy zrzuciliśmy
   updateHandLayout();
   updateTotalAttackUI();
   
   draggedCard = null;
 });
+
+function applySpell(targetCard, spellCard, cost, isAspirin, isGrypa, lane, targetIndex) {
+  playerCurrentMana -= cost;
+  updateManaUI();
+
+  if (isAspirin) {
+     let curHp = parseInt(targetCard.dataset.health);
+     targetCard.dataset.health = curHp * 2;
+     targetCard.querySelector('.hp-val').textContent = curHp * 2;
+     logMessage("ASPIRYNA USED!");
+     try { showImpact(targetCard); } catch(e){}
+  } else if (isGrypa) {
+     applyGrypa(targetCard);
+  }
+
+  spellCard.classList.remove('on-board');
+  spellCard.style.transform = 'scale(0.4)';
+  spellCard.style.position = 'absolute';
+  spellCard.style.left = '';
+  spellCard.style.top = '';
+  spellCard.style.margin = '';
+  document.getElementById('used-cards-area').appendChild(spellCard);
+
+  socket.emit('playCard', {
+    play: { cardData: JSON.parse(spellCard.dataset.raw), lane: lane, isSpell: true, targetIndex: targetIndex }
+  });
+}
+
+function showTargetSelectionOverlay(slot, spellCard, cost, isAspirin, isGrypa, lane) {
+  const overlay = document.getElementById('target-selection-overlay');
+  const btnsContainer = document.getElementById('target-buttons-container');
+  btnsContainer.innerHTML = '';
+  
+  Array.from(slot.children).forEach((childCard, idx) => {
+    const rawData = JSON.parse(childCard.dataset.raw);
+    const btn = document.createElement('button');
+    btn.textContent = rawData.name || "Target " + (idx+1);
+    btn.onclick = () => {
+      overlay.classList.remove('active');
+      applySpell(childCard, spellCard, cost, isAspirin, isGrypa, lane, idx);
+      updateHandLayout();
+    };
+    btnsContainer.appendChild(btn);
+  });
+  
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.style.background = "#555";
+  cancelBtn.onclick = () => {
+    overlay.classList.remove('active');
+    spellCard.style.left = '';
+    spellCard.style.top = '';
+    spellCard.style.position = '';
+    spellCard.style.margin = '';
+    document.getElementById('menu-area').appendChild(spellCard);
+    updateHandLayout();
+  };
+  btnsContainer.appendChild(cancelBtn);
+  
+  overlay.classList.add('active');
+}
 
 // === COMBAT PHASE ===
 endTurnBtn.addEventListener('click', () => {
