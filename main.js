@@ -389,10 +389,12 @@ function startGame() {
   document.querySelectorAll('.used-cards-area .card').forEach(c => c.remove());
   document.querySelectorAll('#menu-area .card').forEach(c => c.remove());
   
-  // Initial draw: exactly 1 card
-  const cardData = drawRandomCard();
-  const newCard = createCard(cardData, 'PLAYER');
-  menuArea.appendChild(newCard);
+  // Initial draw: 3 cards (plus 1 in startPlayerTurn makes 4)
+  for(let i=0; i<3; i++) {
+    const cardData = drawRandomCard();
+    const newCard = createCard(cardData, 'PLAYER');
+    menuArea.appendChild(newCard);
+  }
   
   startPlayerTurn();
 }
