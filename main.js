@@ -18,6 +18,19 @@ const CARD_DB = {
     ability: '',
     lore: 'Zwykła karta chińskiego zawodnika.'
   },
+  RINKY_HIJIKATA: {
+    type: 'RINKY_HIJIKATA',
+    name: 'Rinky Hijikata',
+    class: 'BASELINER',
+    nation: 'AUSTRALIA',
+    flag: '🇦🇺',
+    cost: 1,
+    attack: 2,
+    health: 2,
+    image: 'rinky.png',
+    ability: '',
+    lore: 'Zwykła karta australijskiego tenisisty.'
+  },
   KIMMER_COPPEJANS: {
     type: 'KIMMER_COPPEJANS',
     name: 'Kimmer Coppejans',
