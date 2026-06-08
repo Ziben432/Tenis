@@ -107,6 +107,14 @@ function updateScoreUI() {
   document.getElementById('score-you').textContent = playerPoints;
 }
 
+function showEndGameOverlay(msg) {
+  const overlay = document.getElementById('endgame-overlay');
+  const overlayMsg = document.getElementById('endgame-message');
+  overlayMsg.textContent = msg;
+  overlay.classList.add('active');
+  if(socket) socket.disconnect();
+}
+
 function updateManaUI() {
   document.getElementById('bot-mana-current').textContent = botCurrentMana;
   document.getElementById('bot-mana-max').textContent = botMaxMana;
@@ -350,8 +358,7 @@ function initNetwork() {
   });
 
   socket.on('opponentDisconnected', () => {
-    alert("Opponent disconnected. Match over.");
-    location.reload();
+    showEndGameOverlay("Opponent Left!");
   });
 }
 
@@ -743,7 +750,7 @@ async function resolveCombat() {
   
   if (playerPoints >= 11 || botPoints >= 11) {
     phaseIndicator.textContent = "MATCH OVER!";
-    logMessage(playerPoints >= 11 ? "YOU WIN THE MATCH!" : "OPPONENT WINS THE MATCH!");
+    showEndGameOverlay(playerPoints >= 11 ? "YOU WIN THE MATCH!" : "OPPONENT WINS!");
   } else {
     phaseIndicator.textContent = "NEXT TURN...";
     setTimeout(() => {

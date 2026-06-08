@@ -654,6 +654,7 @@ body {
   z-index: 10;
   cursor: default;
   border: 2px solid var(--gold);
+  border-radius: 16px;
   box-shadow: 0 5px 15px rgba(0,0,0,0.6);
 }
 .card.on-board:hover {
@@ -760,4 +761,49 @@ body.shake { animation: shake 0.3s; }
   border: 1px solid rgba(255, 255, 255, 0.3);
   pointer-events: none;
   white-space: nowrap;
+}
+
+/* === END GAME OVERLAY === */
+.endgame-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.endgame-overlay.active {
+  visibility: visible;
+  opacity: 1;
+}
+
+.endgame-overlay h1 {
+  font-size: 48px;
+  color: var(--gold);
+  margin-bottom: 20px;
+  text-shadow: 0 0 20px var(--gold);
+  text-align: center;
+}
+
+.endgame-overlay button {
+  padding: 15px 40px;
+  font-size: 20px;
+  background: linear-gradient(135deg, #22c1c3, #fdbb2d);
+  border: none;
+  border-radius: 30px;
+  color: #111;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  transition: transform 0.2s;
+}
+
+.endgame-overlay button:hover {
+  transform: scale(1.1);
 }

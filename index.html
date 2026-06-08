@@ -90,9 +90,15 @@
     <div class="used-cards-area" id="used-cards-area">
       <div class="menu-header">GRAVEYARD</div>
     </div>
-    <!-- Socket.IO -->
-    <script src="/socket.io/socket.io.js"></script>
-    <!-- Skrypty gry -->
-    <script defer src="main.js"></script>
+
+  <div id="endgame-overlay" class="endgame-overlay">
+    <h1 id="endgame-message">GAME OVER</h1>
+    <button onclick="location.reload()">Find New Match (Reload)</button>
+  </div>
+
+  <!-- Socket.io Script -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Main Game Script -->
+  <script type="module" src="/main.js"></script>
 </body>
 </html>
