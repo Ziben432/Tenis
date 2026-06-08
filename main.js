@@ -18,6 +18,19 @@ const CARD_DB = {
     ability: '',
     lore: 'Zwykła karta chińskiego zawodnika.'
   },
+  DALIBOR_SVRCINA: {
+    type: 'DALIBOR_SVRCINA',
+    name: 'Dalibor Svrčina',
+    class: 'Debel (Team Up)',
+    nation: 'CZECHIA',
+    flag: '🇨🇿',
+    cost: 1,
+    attack: 0,
+    health: 6,
+    image: 'dalibor.png',
+    ability: 'Debel. Po zagraniu przed własną jednostką przejmuje wszystkie obrażenia, chroniąc partnera stojącego za nim.',
+    lore: 'Niezłomna tarcza.'
+  },
   RINKY_HIJIKATA: {
     type: 'RINKY_HIJIKATA',
     name: 'Rinky Hijikata',
@@ -423,7 +436,11 @@ function handleOpponentPlay(play) {
   } else {
     const oppCard = createCard(play.cardData, 'BOT');
     oppCard.classList.add('on-board');
-    slot.appendChild(oppCard);
+    if (play.cardData.type === 'DALIBOR_SVRCINA') {
+      slot.prepend(oppCard);
+    } else {
+      slot.appendChild(oppCard);
+    }
   }
   
   botCurrentMana -= play.cardData.cost;
@@ -516,7 +533,7 @@ document.addEventListener('mousemove', (e) => {
   const isAspirin = draggedCard.dataset.type === 'ASPIRYNA';
   const isGrypa = draggedCard.dataset.type === 'GRYPA';
   const isSpell = isAspirin || isGrypa;
-  const isDebel = draggedCard.dataset.type === 'SHO_SHIMABUKURO';
+  const isDebel = draggedCard.dataset.type === 'SHO_SHIMABUKURO' || draggedCard.dataset.type === 'DALIBOR_SVRCINA';
   
   document.querySelectorAll('.player-slot, .bot-slot').forEach(slot => {
     slot.classList.remove('drag-over');
@@ -570,7 +587,7 @@ document.addEventListener('mouseup', () => {
   const isAspirin = draggedCard.dataset.type === 'ASPIRYNA';
   const isGrypa = draggedCard.dataset.type === 'GRYPA';
   const isSpell = isAspirin || isGrypa;
-  const isDebel = draggedCard.dataset.type === 'SHO_SHIMABUKURO';
+  const isDebel = draggedCard.dataset.type === 'SHO_SHIMABUKURO' || draggedCard.dataset.type === 'DALIBOR_SVRCINA';
   
   document.querySelectorAll('.player-slot, .bot-slot').forEach(slot => {
     slot.classList.remove('drag-over');
@@ -615,8 +632,13 @@ document.addEventListener('mouseup', () => {
           playerCurrentMana -= cost;
           updateManaUI();
           
-          slot.appendChild(draggedCard);
           draggedCard.classList.add('on-board');
+          
+          if (draggedCard.dataset.type === 'DALIBOR_SVRCINA') {
+            slot.prepend(draggedCard);
+          } else {
+            slot.appendChild(draggedCard);
+          }
           
           draggedCard.style.removeProperty('--fan-x');
           draggedCard.style.removeProperty('--fan-y');
