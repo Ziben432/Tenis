@@ -285,7 +285,7 @@ function inspectCard(cardEl) {
   cardEl.style.top = fixedTop + 'px';
   cardEl.style.margin = '0';
   
-  const initialScale = inspectedCardWasOnBoard ? 0.65 : 1;
+  const initialScale = inspectedCardWasOnBoard ? 0.8 : 1;
   cardEl.style.transform = `scale(${initialScale})`;
   
   // Wymuś reflow
@@ -296,7 +296,9 @@ function inspectCard(cardEl) {
   cardEl.style.transform = `scale(${targetScale})`;
   
   setTimeout(() => {
-    cardEl.classList.add('flipped');
+    if (cardEl.classList.contains('card-inspected')) {
+      cardEl.classList.add('flipped');
+    }
   }, 150);
 }
 

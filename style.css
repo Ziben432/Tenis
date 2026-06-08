@@ -354,7 +354,7 @@ body {
   margin: 0 !important;
   top: calc(50% - 100px) !important;
   left: calc(50% - 70px) !important;
-  zoom: 0.65 !important;
+  zoom: 0.8 !important;
   transform: none !important;
   z-index: 10;
   cursor: pointer; /* Can click on board to inspect */
