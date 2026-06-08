@@ -346,7 +346,7 @@ document.getElementById('card-inspector-overlay')?.addEventListener('click', fun
 });
 
 let socket;
-let myRole = null;
+
 
 window.addEventListener('load', () => {
   updateScoreUI();
