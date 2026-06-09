@@ -685,18 +685,33 @@ document.addEventListener('mouseup', () => {
   const cardCenterY = cardRect.top + cardRect.height / 2;
   
   let snapped = false;
-  const isAspirin = draggedCard.dataset.type === 'ASPIRYNA';
-  const isGrypa = draggedCard.dataset.type === 'GRYPA';
-  const isSpell = isAspirin || isGrypa;
+  const rawData = JSON.parse(draggedCard.dataset.raw);
+  const isSpell = ['Skill', 'SPELL'].includes(rawData.class);
+  if (isSpell) {
+    draggedCard.style.transform = '';
+    draggedCard.style.left = '';
+    draggedCard.style.top = '';
+    draggedCard.style.position = 'relative';
+    draggedCard.style.zIndex = '1';
+    menuArea.appendChild(draggedCard);
+    
+    if (playerCurrentMana >= parseInt(rawData.cost)) {
+       enterTargetingMode(draggedCard, rawData);
+    } else {
+       logMessage("NOT ENOUGH MANA");
+    }
+    draggedCard = null;
+    return;
+  }
+
   const isDebel = draggedCard.dataset.type === 'SHO_SHIMABUKURO' || draggedCard.dataset.type === 'DALIBOR_SVRCINA';
   const isColeman = draggedCard.dataset.type === 'COLEMAN_WONG';
   
   document.querySelectorAll('.player-slot, .bot-slot').forEach(slot => {
     slot.classList.remove('drag-over');
-    if (slot.children.length > 0) slot.children[0].classList.remove('drag-over-spell');
   });
   
-  const slotsToTarget = isGrypa ? document.querySelectorAll('.bot-slot') : document.querySelectorAll('.player-slot');
+  const slotsToTarget = document.querySelectorAll('.player-slot');
   
   slotsToTarget.forEach(slot => {
     const rect = slot.getBoundingClientRect();
@@ -704,7 +719,7 @@ document.addEventListener('mouseup', () => {
       cardCenterX > rect.left && cardCenterX < rect.right &&
       cardCenterY > rect.top && cardCenterY < rect.bottom
     ) {
-      if (slot.parentNode.dataset.lane === "5" && !isDebel && !isSpell && !isColeman) {
+      if (slot.parentNode.dataset.lane === "5" && !isDebel && !isColeman) {
         logMessage("GOLDEN COURT - ONLY DOUBLE CARDS ALLOWED!");
         return; // Zablokuj kładzenie zwykłych kart (ale pozwól na czary i deble)
       }
@@ -715,44 +730,39 @@ document.addEventListener('mouseup', () => {
          return;
       }
       
-      if (isSpell) {
-        if (slot.children.length > 0) {
-          if (slot.children.length === 2 && slot.parentNode.dataset.lane === "5") {
-             // DEBEL NA ZŁOTYM TORZE - Otwórz modal z wyborem celu
-             showTargetSelectionOverlay(slot, draggedCard, cost, isAspirin, isGrypa, isApple, parseInt(slot.parentNode.dataset.lane));
-             snapped = true;
-          } else {
-             // Zwykły tor lub 1 karta na złotym - od razu nałóż efekt
-             applySpell(slot.children[0], draggedCard, cost, isAspirin, isGrypa, isApple, parseInt(slot.parentNode.dataset.lane), 0);
-             snapped = true;
-          }
+      const canPlace = isDebel ? slot.children.length < 2 : slot.children.length === 0;
+      if (canPlace) {
+        playerCurrentMana -= cost;
+        updateManaUI();
+        
+        draggedCard.classList.add('on-board');
+        
+        if (draggedCard.dataset.type === 'DALIBOR_SVRCINA') {
+          slot.prepend(draggedCard);
+        } else {
+          slot.appendChild(draggedCard);
         }
-
-      } else {
-        const canPlace = isDebel ? slot.children.length < 2 : slot.children.length === 0;
-        if (canPlace) {
-          playerCurrentMana -= cost;
-          updateManaUI();
-          
-          draggedCard.classList.add('on-board');
-          
-          if (draggedCard.dataset.type === 'DALIBOR_SVRCINA') {
-            slot.prepend(draggedCard);
-          } else {
-            slot.appendChild(draggedCard);
+        
+        draggedCard.style.position = 'relative';
+        draggedCard.style.left = '0';
+        draggedCard.style.top = '0';
+        draggedCard.style.transform = 'none';
+        draggedCard.style.zIndex = '10';
+        
+        snapped = true;
+        
+        const isGoldenCourt = slot.parentNode.dataset.lane === "5";
+        
+        socket.emit('playCard', {
+          play: {
+            lane: parseInt(slot.parentNode.dataset.lane),
+            cardData: JSON.parse(draggedCard.dataset.raw),
+            isSpell: false,
+            isGoldenCourt: isGoldenCourt
           }
-          
-          draggedCard.style.removeProperty('--fan-x');
-          draggedCard.style.removeProperty('--fan-y');
-          draggedCard.style.removeProperty('--fan-r');
-          draggedCard.style.removeProperty('--fan-z');
-          
-          socket.emit('playCard', {
-            play: { cardData: JSON.parse(draggedCard.dataset.raw), lane: parseInt(slot.parentNode.dataset.lane), isSpell: false }
-          });
-          
-          snapped = true;
-        }
+        });
+        
+        logMessage(`YOU PLAYED ${draggedCard.querySelector('.card-header h2') ? draggedCard.querySelector('.card-header h2').textContent : 'A CARD'}`);
       }
     }
   });
