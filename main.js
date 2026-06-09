@@ -294,7 +294,7 @@ function inspectCard(cardEl) {
   let fixedLeft = centerX - 70;
   let fixedTop = centerY - 100;
   
-  const targetScale = 1.75;
+  const targetScale = 2.275; // Zwiększone o 30% względem 1.75
   
   // Usuwamy klase on-board by jej !important nie nadpisało naszych wyliczonych koordynatów
   if (inspectedCardWasOnBoard) {
@@ -332,6 +332,14 @@ function inspectCard(cardEl) {
 document.getElementById('card-inspector-overlay')?.addEventListener('click', function(e) {
   if(this.classList.contains('active')) {
     const cardEl = this.querySelector('.card-inspected');
+    
+    // Jeśli kliknięto w samą kartę, to ją odwróć zamiast zamykać
+    if (e.target.closest('.card-inspected')) {
+      cardEl.classList.toggle('flipped');
+      return;
+    }
+    
+    // Zamykanie tylko po kliknięciu w tło (poza kartą)
     if (cardEl) {
       cardEl.classList.remove('flipped');
       cardEl.style.opacity = '0';
