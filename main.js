@@ -169,10 +169,10 @@ function showEndGameOverlay(msg) {
 }
 
 function updateManaUI() {
-  document.getElementById('bot-mana-current').textContent = botCurrentMana;
+  document.getElementById('bot-mana-current').textContent = Math.max(0, botCurrentMana);
   document.getElementById('bot-mana-max').textContent = botMaxMana;
   
-  document.getElementById('player-mana-current').textContent = playerCurrentMana;
+  document.getElementById('player-mana-current').textContent = Math.max(0, playerCurrentMana);
   document.getElementById('player-mana-max').textContent = playerMaxMana;
 }
 
@@ -198,7 +198,7 @@ function createCard(cardData, owner) {
       <div class="card-front">
         <div class="card-cost">${cardData.cost}</div>
         <div class="card-glare"></div>
-        ${cardData.class !== 'Skill' && !cardData.hideStatsOnFront ? `
+        ${(cardData.class !== 'Skill' && cardData.class !== 'SPELL') && !cardData.hideStatsOnFront ? `
         <div class="card-header">
           <h2>${cardData.name}</h2>
           <div class="nation-flag">${cardData.flag}</div>
@@ -230,7 +230,7 @@ function createCard(cardData, owner) {
       </div>
       <div class="card-back">
         <h3>${cardData.name}</h3>
-        ${cardData.class !== 'Skill' ? `
+        ${(cardData.class !== 'Skill' && cardData.class !== 'SPELL') ? `
         <div class="card-lore" style="text-align: left; margin-bottom: 10px; font-size: 11px; color: #ddd;">
            <strong>Kraj:</strong> ${cardData.nation === 'BOSNIA' ? 'Bośnia i Hercegowina' : (cardData.nation === 'CHINA' ? 'Chiny' : (cardData.nation === 'BELGIUM' ? 'Belgia' : cardData.nation))} ${cardData.flag}
         </div>
@@ -256,6 +256,17 @@ function createCard(cardData, owner) {
   card.addEventListener('mouseup', (e) => {
     if (Math.abs(e.clientX - dragStartX) < 5 && Math.abs(e.clientY - dragStartY) < 5) {
       // It's a click, not a drag!
+      const rawData = JSON.parse(card.dataset.raw);
+      const isSpell = ['Skill', 'SPELL'].includes(rawData.class);
+      
+      if (isSpell && owner === 'PLAYER' && currentPhase === 'PLAYER_PLAY' && isMyTurn) {
+        if (playerCurrentMana >= parseInt(rawData.cost)) {
+          enterTargetingMode(card, rawData);
+          return;
+        } else {
+          logMessage("NOT ENOUGH MANA");
+        }
+      }
       inspectCard(card);
     }
   });
@@ -581,6 +592,7 @@ document.addEventListener('mousedown', (e) => {
   offsetX = e.clientX - rect.left;
   offsetY = e.clientY - rect.top;
   
+  draggedCard.classList.remove('flipped');
   dragStartX = e.clientX;
   dragStartY = e.clientY;
 });
@@ -628,7 +640,7 @@ document.addEventListener('mousemove', (e) => {
     }
   });
   
-  const slotsToTarget = isGrypa ? document.querySelectorAll('.bot-slot') : document.querySelectorAll('.player-slot');
+  const slotsToTarget = document.querySelectorAll('.player-slot');
   
   slotsToTarget.forEach(slot => {
     const rect = slot.getBoundingClientRect();
@@ -641,7 +653,7 @@ document.addEventListener('mousemove', (e) => {
           slot.children[0].classList.add('drag-over-spell');
         }
       } else {
-        if (slot.parentNode.dataset.lane === "5" && !isDebel && !isSpell && !isColeman) {
+        if (slot.parentNode.dataset.lane === "5" && !isDebel && !isColeman) {
           return; // Nie podświetlaj
         }
         if (isDebel) {
@@ -1094,3 +1106,67 @@ function updateTotalAttackUI() {
     }
   });
 }
+
+let targetingModeSpell = null;
+let targetingModeCardEl = null;
+
+function enterTargetingMode(cardEl, cardData) {
+  if (targetingModeSpell) return;
+  targetingModeSpell = cardData;
+  targetingModeCardEl = cardEl;
+
+  document.body.classList.add('targeting-mode-active');
+  cardEl.classList.add('targeting-spell-floating');
+  
+  const isAspirin = cardData.type === 'ASPIRYNA';
+  const isGrypa = cardData.type === 'GRYPA';
+  const isApple = cardData.type === 'MAGIC_APPLE';
+
+  const targets = isGrypa ? document.querySelectorAll('.bot-slot .card') : document.querySelectorAll('.player-slot .card');
+  targets.forEach(t => t.classList.add('valid-target-pulse'));
+}
+
+function exitTargetingMode() {
+  document.body.classList.remove('targeting-mode-active');
+  if (targetingModeCardEl) {
+     targetingModeCardEl.classList.remove('targeting-spell-floating');
+  }
+  document.querySelectorAll('.valid-target-pulse').forEach(t => t.classList.remove('valid-target-pulse'));
+  targetingModeSpell = null;
+  targetingModeCardEl = null;
+}
+
+function applySpellFromTargeting(targetCard, spellCardEl, spellData) {
+  const isAspirin = spellData.type === 'ASPIRYNA';
+  const isGrypa = spellData.type === 'GRYPA';
+  const isApple = spellData.type === 'MAGIC_APPLE';
+  const cost = parseInt(spellData.cost);
+  const lane = parseInt(targetCard.closest('.lane').dataset.lane);
+  
+  const slot = targetCard.parentNode;
+  const targetIndex = Array.from(slot.children).indexOf(targetCard);
+
+  socket.emit('playCard', {
+    play: {
+      lane: lane,
+      cardData: spellData,
+      isSpell: true,
+      targetIndex: targetIndex
+    }
+  });
+
+  applySpell(targetCard, spellCardEl, cost, isAspirin, isGrypa, isApple, lane, targetIndex);
+}
+
+document.addEventListener('click', (e) => {
+  if (targetingModeSpell) {
+    const targetCard = e.target.closest('.valid-target-pulse');
+    if (targetCard) {
+       applySpellFromTargeting(targetCard, targetingModeCardEl, targetingModeSpell);
+       exitTargetingMode();
+    } else if (!e.target.closest('.targeting-spell-floating')) {
+       exitTargetingMode();
+    }
+  }
+});
+

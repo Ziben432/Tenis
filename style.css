@@ -746,15 +746,18 @@ body.shake { animation: shake 0.3s; }
 
 .total-attack-badge {
   position: absolute;
-  bottom: 0px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  right: -60px;
+  transform: translateY(-50%);
   background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
   color: white;
   padding: 4px 10px;
   border-radius: 8px;
   font-family: 'Outfit', sans-serif;
   font-weight: 900;
+  z-index: 30;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  pointer-events: none;
   font-size: 14px;
   z-index: 20;
   box-shadow: 0 4px 15px rgba(255, 65, 108, 0.6);
@@ -806,4 +809,22 @@ body.shake { animation: shake 0.3s; }
 
 .endgame-overlay button:hover {
   transform: scale(1.1);
+}
+
+.targeting-spell-floating {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) scale(1.5) !important;
+  z-index: 10000 !important;
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.8) !important;
+  pointer-events: none;
+}
+
+.valid-target-pulse {
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.8), inset 0 0 10px rgba(0, 255, 0, 0.5) !important;
+  border-color: #00ff00 !important;
+  transform: scale(1.05) !important;
+  cursor: crosshair !important;
+  z-index: 50 !important;
 }
