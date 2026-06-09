@@ -18,6 +18,17 @@ const CARD_DB = {
     ability: '',
     lore: 'Zwykła karta chińskiego zawodnika.'
   },
+  MAGIC_APPLE: {
+    type: 'MAGIC_APPLE',
+    name: 'Magiczne Jabłuszko',
+    class: 'SPELL',
+    nation: 'MAGIC',
+    flag: '🍎',
+    cost: 1,
+    image: 'apple.png',
+    ability: '',
+    lore: 'Wylecz wybraną własną jednostkę o 2 Health. Następnie dobierz 1 losową kartę.'
+  },
   COLEMAN_WONG: {
     type: 'COLEMAN_WONG',
     name: 'Coleman Wong',
@@ -481,6 +492,15 @@ function handleOpponentPlay(play) {
         targetCard.querySelector('.hp-val').textContent = curHp * 2;
         try { showImpact(targetCard); } catch(e){}
       }
+    } else if (play.cardData.type === 'MAGIC_APPLE') {
+      const slotForApple = document.querySelector(`.lane[data-lane="${lane}"] .bot-slot`);
+      const targetCard = slotForApple.children[play.targetIndex || 0];
+      if (targetCard) {
+        let curHp = parseInt(targetCard.dataset.health);
+        targetCard.dataset.health = curHp + 2;
+        targetCard.querySelector('.hp-val').textContent = curHp + 2;
+        try { showImpact(targetCard); } catch(e){}
+      }
     } else if (play.cardData.type === 'GRYPA') {
       const pSlot = document.querySelector(`.lane[data-lane="${lane}"] .player-slot`);
       const targetCard = pSlot.children[play.targetIndex || 0];
@@ -679,11 +699,11 @@ document.addEventListener('mouseup', () => {
         if (slot.children.length > 0) {
           if (slot.children.length === 2 && slot.parentNode.dataset.lane === "5") {
              // DEBEL NA ZŁOTYM TORZE - Otwórz modal z wyborem celu
-             showTargetSelectionOverlay(slot, draggedCard, cost, isAspirin, isGrypa, parseInt(slot.parentNode.dataset.lane));
+             showTargetSelectionOverlay(slot, draggedCard, cost, isAspirin, isGrypa, isApple, parseInt(slot.parentNode.dataset.lane));
              snapped = true;
           } else {
              // Zwykły tor lub 1 karta na złotym - od razu nałóż efekt
-             applySpell(slot.children[0], draggedCard, cost, isAspirin, isGrypa, parseInt(slot.parentNode.dataset.lane), 0);
+             applySpell(slot.children[0], draggedCard, cost, isAspirin, isGrypa, isApple, parseInt(slot.parentNode.dataset.lane), 0);
              snapped = true;
           }
         }
@@ -733,7 +753,7 @@ document.addEventListener('mouseup', () => {
   draggedCard = null;
 });
 
-function applySpell(targetCard, spellCard, cost, isAspirin, isGrypa, lane, targetIndex) {
+function applySpell(targetCard, spellCard, cost, isAspirin, isGrypa, isApple, lane, targetIndex) {
   playerCurrentMana -= cost;
   updateManaUI();
 
@@ -745,6 +765,17 @@ function applySpell(targetCard, spellCard, cost, isAspirin, isGrypa, lane, targe
      try { showImpact(targetCard); } catch(e){}
   } else if (isGrypa) {
      applyGrypa(targetCard);
+  } else if (isApple) {
+     let curHp = parseInt(targetCard.dataset.health);
+     targetCard.dataset.health = curHp + 2;
+     targetCard.querySelector('.hp-val').textContent = curHp + 2;
+     logMessage("MAGIC APPLE USED!");
+     try { showImpact(targetCard); } catch(e){}
+     
+     // Dobierz 1 losową kartę
+     const newCardData = drawRandomCard();
+     const newCard = createCard(newCardData, 'PLAYER');
+     menuArea.appendChild(newCard);
   }
 
   spellCard.classList.remove('on-board');
@@ -760,7 +791,7 @@ function applySpell(targetCard, spellCard, cost, isAspirin, isGrypa, lane, targe
   });
 }
 
-function showTargetSelectionOverlay(slot, spellCard, cost, isAspirin, isGrypa, lane) {
+function showTargetSelectionOverlay(slot, spellCard, cost, isAspirin, isGrypa, isApple, lane) {
   const overlay = document.getElementById('target-selection-overlay');
   const btnsContainer = document.getElementById('target-buttons-container');
   btnsContainer.innerHTML = '';
@@ -771,7 +802,7 @@ function showTargetSelectionOverlay(slot, spellCard, cost, isAspirin, isGrypa, l
     btn.textContent = rawData.name || "Target " + (idx+1);
     btn.onclick = () => {
       overlay.classList.remove('active');
-      applySpell(childCard, spellCard, cost, isAspirin, isGrypa, lane, idx);
+      applySpell(childCard, spellCard, cost, isAspirin, isGrypa, isApple, lane, idx);
       updateHandLayout();
     };
     btnsContainer.appendChild(btn);
